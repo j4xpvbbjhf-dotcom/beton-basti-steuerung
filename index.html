@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Beton-Basti Steuerung</title>
+<style>
+:root{
+  --bg:#f5f4f0;--card:#ffffff;--ink:#1d1d1b;--muted:#6b6a65;--line:#e3e1da;
+  --accent:#2f5d50;--accent-soft:#e3eee9;--warn:#9a5b00;--warn-soft:#fbf0dc;--bad:#a23b2c;
+  --radius:12px;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#151614;--card:#1f201e;--ink:#ecebe6;--muted:#9c9b94;--line:#33342f;
+  --accent:#7cc0a8;--accent-soft:#23332d;--warn:#e0a54a;--warn-soft:#3a2f1c;--bad:#e58a7a;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+header{padding:28px 16px 8px;max-width:860px;margin:0 auto}
+h1{font-size:24px;margin:0 0 4px}
+.sub{color:var(--muted);margin:0}
+nav{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+nav div{max-width:860px;margin:0 auto;padding:0 16px;display:flex;gap:4px;overflow-x:auto}
+nav button{border:0;background:none;padding:12px 14px;font:inherit;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+nav button.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+.badge{display:inline-block;min-width:20px;padding:0 6px;border-radius:10px;background:var(--accent);color:var(--card);font-size:12px;margin-left:4px;text-align:center}
+main{max-width:860px;margin:0 auto;padding:16px 16px 80px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin:0 0 14px}
+.card h2{font-size:17px;margin:0 0 10px}
+.card h3{font-size:15px;margin:16px 0 8px}
+details.card>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px}
+details.card>summary::-webkit-details-marker{display:none}
+details.card>summary h2{margin:0;flex:1}
+.chev{color:var(--muted);transition:transform .15s}
+details[open]>summary .chev{transform:rotate(90deg)}
+.row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.row .lbl{flex:1;min-width:0}
+.row .lbl b{font-weight:600;display:block}
+.row .lbl small{color:var(--muted);display:block}
+input[type=text],input[type=number],input[type=url],select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;width:100%}
+.row input[type=number]{width:90px}
+.row input[type=text],.row select{width:220px;max-width:45vw}
+textarea{min-height:80px}
+.sw{position:relative;width:44px;height:26px;flex:none}
+.sw input{opacity:0;width:100%;height:100%;margin:0;position:absolute;cursor:pointer;z-index:1}
+.sw span{position:absolute;inset:0;background:var(--line);border-radius:13px;transition:.15s}
+.sw span::after{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:var(--card);border-radius:50%;transition:.15s;box-shadow:0 1px 2px #0003}
+.sw input:checked+span{background:var(--accent)}
+.sw input:checked+span::after{left:21px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:18px;padding:5px 6px 5px 10px;cursor:pointer;user-select:none;background:var(--card)}
+.chip.on{background:var(--accent-soft);border-color:var(--accent)}
+.chip input{margin:0;accent-color:var(--accent)}
+.x{border:0;background:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:2px 4px;border-radius:6px}
+.x:hover{color:var(--bad);background:var(--warn-soft)}
+.add{display:flex;gap:6px;margin-top:8px}
+.add input{flex:1}
+.btn{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:7px 12px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--card);font-weight:600}
+.btn.sm{padding:4px 9px;font-size:13px}
+.tools{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.muted{color:var(--muted)}
+.hint{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 10px;font-size:14px;margin:8px 0}
+.portal{border-top:1px solid var(--line);padding:10px 0;display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center}
+.portal .meta{grid-column:1/-1;display:grid;gap:6px}
+.portal .name{font-weight:600}
+.tag{font-size:12px;border-radius:6px;padding:2px 7px;background:var(--warn-soft);color:var(--warn)}
+.grp{border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0}
+.grp-h{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.grp-h b{flex:1}
+.plz{display:grid;grid-template-columns:70px 1fr auto;gap:4px 8px;align-items:center;font-size:14px}
+.changes li{margin:4px 0}
+.landkopf{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.flag{font-size:22px;margin-right:4px}
+.order{display:flex;gap:2px}
+.empty{color:var(--muted);font-style:italic}
+@media (max-width:560px){
+  .row{flex-wrap:wrap}
+  .row input[type=text],.row select{width:100%;max-width:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Beton-Basti Steuerung</h1>
+  <p class="sub" id="stand"></p>
+</header>
+<nav><div id="tabs"></div></nav>
+<main id="app"></main>
+<script>
+const ORIG = {"stand": "2026-10-05 11:49", "beton": {"einstellungen": [{"titel": "Was gesucht wird", "zeilen": [{"k": "Objekttyp", "v": "Wohnung", "b": "Eigentumswohnungen zum Kauf"}, {"k": "Zielformat", "v": "Garçonniere", "b": "Kleine Wohneinheit, meist ein Zimmer. Zwei Zimmer sind erlaubt, solange die Fläche passt"}, {"k": "Maximalfläche", "v": "35", "b": "Harte Grenze. Alles über diesem Wert fliegt raus (in m²)"}, {"k": "Mindestfläche", "v": "keine", "b": "Es gibt keine Untergrenze. Auch eine 18 m² Einheit wird gemeldet"}, {"k": "Preisgrenze", "v": "keine", "b": "Bewusst kein Preisfilter. Der Kaufpreis wird gemeldet, filtert aber nicht"}]}, {"titel": "Bildauswertung", "zeilen": [{"k": "Bilder ansehen", "v": "ja", "b": "Bei `ja` lädt der Bot die ersten Fotos und beschreibt, was zu sehen ist"}, {"k": "Bilder je Objekt", "v": "3", "b": "Wie viele Fotos er sich je Objekt ansieht. Mehr Bilder heißt längerer Lauf"}]}, {"titel": "Telegram Verhalten", "zeilen": [{"k": "Nachricht je Objekt", "v": "volle Nachricht", "b": "Alle Fakten plus kurze Textzusammenfassung in Stichpunkten"}, {"k": "Reihenfolge", "v": "Kaufpreis aufsteigend", "b": "Innerhalb jedes Länderblocks kommt das günstigste Objekt zuerst"}, {"k": "Blockreihenfolge", "v": "AT, DE, IT", "b": "Österreich zuerst, danach die Nachbarländer", "auto": true}, {"k": "Wohnbauprojekte", "v": "eine Zeile je Projekt", "b": "Sammelinserate mit ab Preisen zählen als ein Eintrag und werden in der Nachricht als Wohnbauprojekt gekennzeichnet"}, {"k": "Trennzeile je Block", "v": "ja", "b": "Kurze Kopfzeile vor jedem Länderblock mit Flagge und Trefferzahl"}, {"k": "Abschlussmeldung", "v": "ja", "b": "Kurze Zusammenfassung am Ende jedes Laufs, aufgeschlüsselt nach Land"}]}, {"titel": "Doppelte Objekte", "zeilen": [{"k": "Dubletten Erkennung", "v": "URL", "b": "Eine bereits gemeldete Inserats URL kommt nicht noch einmal"}, {"k": "Preisänderung melden", "v": "ja", "b": "Taucht dieselbe URL mit anderem Kaufpreis auf, kommt eine neue Nachricht mit Hinweis auf die Änderung"}]}], "laender": [{"code": "AT", "flagge": "🇦🇹", "name": "Österreich", "einstellungen": [{"k": "Ganz Tirol", "v": "ja", "b": "Bei `ja` sucht der Bot im gesamten Bundesland und ignoriert die Häkchen unten. Bei `nein` zählt nur, was unten angehakt ist"}, {"k": "Bundesland", "v": "Tirol", "b": "Bezugsrahmen für die österreichischen Portal Abfragen"}], "listen": [{"titel": "Bezirke", "intro": [], "gruppen": [{"titel": "", "items": [{"name": "Innsbruck-Stadt", "an": true}, {"name": "Innsbruck-Land", "an": true}, {"name": "Kufstein", "an": true}, {"name": "Schwaz", "an": true}, {"name": "Imst", "an": true}, {"name": "Kitzbühel", "an": true}, {"name": "Landeck", "an": true}, {"name": "Reutte", "an": true}, {"name": "Lienz", "an": true}]}], "outro": []}, {"titel": "Orte und Postleitzahlen", "intro": ["Feiner als die Bezirke. Ist hier mindestens ein Ort angehakt, gilt die Ortsliste vor der Bezirksliste."], "gruppen": [{"titel": "Innsbruck und direktes Umland", "items": [{"name": "6020 Innsbruck", "an": false}, {"name": "6010 Innsbruck", "an": false}, {"name": "6063 Rum", "an": false}, {"name": "6067 Absam", "an": false}, {"name": "6060 Hall in Tirol", "an": false}, {"name": "6176 Völs", "an": false}, {"name": "6170 Zirl", "an": false}, {"name": "6094 Axams", "an": false}, {"name": "6080 Igls und Vill", "an": false}, {"name": "6091 Götzens", "an": false}]}, {"titel": "Unterland", "items": [{"name": "6112 Wattens", "an": false}, {"name": "6130 Schwaz", "an": false}, {"name": "6300 Wörgl", "an": false}, {"name": "6330 Kufstein", "an": false}, {"name": "6341 Ebbs", "an": false}, {"name": "6370 Kitzbühel", "an": false}, {"name": "6380 St. Johann in Tirol", "an": false}, {"name": "6365 Kirchberg in Tirol", "an": false}]}, {"titel": "Oberland", "items": [{"name": "6410 Telfs", "an": false}, {"name": "6430 Ötztal-Bahnhof", "an": false}, {"name": "6460 Imst", "an": false}, {"name": "6500 Landeck", "an": false}, {"name": "6511 Zams", "an": false}, {"name": "6600 Reutte", "an": false}]}, {"titel": "Osttirol", "items": [{"name": "9900 Lienz", "an": false}, {"name": "9971 Matrei in Osttirol", "an": false}]}], "outro": []}], "aktiv": true, "bedeutung": "Tirol, der Kern des Projekts", "max_nachrichten": "25", "max_bedeutung": "Obergrenze für den AT Block. Am 2026-09-09 von 15 angehoben, weil allein willhaben Tirol 40 Treffer bis 35 m² lieferte", "rahmen_wert": "Tirol", "rahmen_bedeutung": "Kern des Projekts", "portale": [{"name": "willhaben.at", "status": "aktiv", "beschreibung": "Größtes AT Portal, stärkerer Bot Schutz, wird über die eingebettete Datenquelle gelesen", "url": "https://www.willhaben.at/iad/immobilien/eigentumswohnung/tirol?sort=3&rows=90"}, {"name": "immmo.at", "status": "aktiv", "beschreibung": "Meta Aggregator, deckt viele österreichische Portale auf einmal ab", "url": "https://www.immmo.at/immo/Wohnung-kaufen/Tirol"}, {"name": "immosuchmaschine.at", "status": "aktiv", "beschreibung": "Zweiter Meta Aggregator mit teils anderer Quellenbasis, rund 4.500 Eigentumswohnungen in Tirol", "url": "https://www.immosuchmaschine.at/Tirol/Eigentumswohnungen"}, {"name": "immo.tt.com", "status": "aktiv", "beschreibung": "Tiroler Tageszeitung, höchstes Suchvolumen in Tirol", "url": "https://immo.tt.com/kaufobjekt/wohnung/tirol?s%5Bgt%28price%2C+0%29%5D=desc&s%5Bprice%5D=asc&s%5Bdisplays_at%5D=0"}, {"name": "immobilien.derstandard.at", "status": "aktiv", "beschreibung": "Über 1.000 Kaufwohnungen in Tirol, Sortierung nach Preis aufsteigend eingebaut", "url": "https://immobilien.derstandard.at/suche/tirol/kaufen-wohnung?areaTo=35"}, {"name": "immobilienscout24.at", "status": "aktiv", "beschreibung": "Großes AT Portal, weist Quadratmeterpreis direkt aus", "url": "https://www.immobilienscout24.at/regional/tirol/wohnung-kaufen?primaryAreaTo=35"}, {"name": "immowelt.at", "status": "aktiv", "beschreibung": "2.931 Angebote in Tirol. Am 2026-09-09 mit der Listen URL erneut geprüft, funktioniert entgegen der früheren Annahme ohne Browser API", "url": "https://www.immowelt.at/liste/bl-tirol/wohnungen/kaufen"}, {"name": "sreal.at", "status": "aktiv", "beschreibung": "Sparkassen Maklernetz. Am 2026-09-09 über das ausgefüllte Suchformular geprüft, 15 Objekte bis 35 m² in Tirol", "url": "https://www.sreal.at/de/immobilien-suche?f%5BbuyingType%5D=buy&f%5Blocation_or_id%5D%5B%5D=f_Tirol&f%5BobjectType%5D%5B%5D=flat&f%5Barea%5D%5Bmax%5D=35"}, {"name": "bazar.at", "status": "aktiv", "beschreibung": "Viele echte Privatverkäufe, dazu Maklerobjekte über das Partnerportal dibeo.at", "url": "https://www.bazar.at/l/07-wo-ka/tir-/vp"}, {"name": "ohne-makler.at", "status": "aktiv", "beschreibung": "Provisionsfreie Privatangebote", "url": "https://www.ohne-makler.at/immobilien/wohnung-kaufen/tirol/"}, {"name": "remax.at", "status": "inaktiv", "beschreibung": "Größtes Maklernetz Österreichs mit Exklusivobjekten. Antwortet mit einer Sicherheitsabfrage, braucht die Browser API", "url": ""}, {"name": "findmyhome.at", "status": "inaktiv", "beschreibung": "Lädt die Liste per JavaScript. Premiumsegment mit nur rund 200 Tiroler Objekten", "url": ""}, {"name": "Ediktsdatei", "status": "inaktiv", "beschreibung": "Offizielle Zwangsversteigerungen. Formularbasiertes Suchsystem, liefert per direktem Abruf keinen Inhalt", "url": ""}]}, {"code": "DE", "flagge": "🇩🇪", "name": "Deutschland", "einstellungen": [{"k": "Ganz Bayern", "v": "nein", "b": "Bei `ja` sucht der Bot bayernweit und ignoriert die Häkchen unten. Bei `nein` zählt nur die angehakte Grenzregion"}, {"k": "Bundesland", "v": "Bayern", "b": "Bezugsrahmen für die deutschen Portal Abfragen"}], "listen": [{"titel": "Grenzregion zu Tirol", "intro": ["Landkreise entlang der Tiroler Grenze. Der Bot baut je angehaktem Kreis eine eigene Portalabfrage."], "gruppen": [{"titel": "", "items": [{"name": "Garmisch-Partenkirchen", "an": true}, {"name": "Weilheim-Schongau", "an": true}, {"name": "Bad Tölz-Wolfratshausen", "an": true}, {"name": "Miesbach", "an": true}, {"name": "Rosenheim", "an": true}, {"name": "Traunstein", "an": true}, {"name": "Berchtesgadener Land", "an": true}, {"name": "Ostallgäu", "an": true}, {"name": "Oberallgäu", "an": true}, {"name": "Lindau", "an": false}, {"name": "München", "an": false}]}], "outro": ["> Je mehr Kreise angehakt sind, desto mehr Anfragen braucht ein Lauf. Neun Kreise mal drei deutsche Portale sind bereits 27 Abfragen. Hake nur an, was du wirklich willst."]}], "aktiv": true, "bedeutung": "Grenzregion zu Tirol, Oberbayern und Allgäu", "max_nachrichten": "15", "max_bedeutung": "Obergrenze für den DE Block, von 10 angehoben", "rahmen_wert": "Grenzregion Oberbayern und Allgäu", "rahmen_bedeutung": "seit 2026-09-09", "portale": [{"name": "immobilienscout24.de", "status": "aktiv", "beschreibung": "Größter deutscher Marktplatz. Einziges deutsches Portal, das echte Landkreise kann, dazu ein funktionierender Flächenfilter", "url": "https://www.immobilienscout24.de/Suche/de/bayern/KREIS-kreis/wohnung-kaufen?livingspace=-35.0"}, {"name": "immowelt.de", "status": "aktiv", "beschreibung": "Zweitgrößte Plattform. Kennt keine Landkreise, Abfrage je Ort. Verifizierte Ortsslugs siehe unten", "url": "https://www.immowelt.de/liste/SLUG/wohnungen/kaufen"}, {"name": "kleinanzeigen.de", "status": "aktiv", "beschreibung": "Der Kleinanzeigen Kanal. Viele provisionsfreie Privatangebote, die auf keinem Fachportal stehen. Abfrage je Ort", "url": "https://www.kleinanzeigen.de/s-ORT/eigentumswohnung/k0c196"}]}, {"code": "IT", "flagge": "🇮🇹", "name": "Italien", "einstellungen": [{"k": "Ganze Region", "v": "nein", "b": "Bei `ja` sucht der Bot in Trentino Südtirol gesamt, also inklusive Provinz Trient. Bei `nein` nur Provinz Bozen"}, {"k": "Region", "v": "Südtirol, Provinz Bozen", "b": "Bezugsrahmen für die italienischen Portal Abfragen"}], "listen": [{"titel": "Orte in Südtirol", "intro": ["Leer heißt ganze Provinz Bozen. Hake nur an, wenn du gezielter suchen willst."], "gruppen": [{"titel": "", "items": [{"name": "Bozen", "an": false}, {"name": "Meran", "an": false}, {"name": "Brixen", "an": false}, {"name": "Bruneck", "an": false}, {"name": "Sterzing", "an": false}, {"name": "Innichen", "an": false}, {"name": "Schlanders", "an": false}, {"name": "Neumarkt", "an": false}]}], "outro": ["> Die italienischen Inserate sind auf Italienisch. Der Bot übersetzt die Stichpunkte ins Deutsche und schreibt den Originaltitel dazu."]}], "aktiv": true, "bedeutung": "Südtirol, Provinz Bozen", "max_nachrichten": "10", "max_bedeutung": "Obergrenze für den IT Block", "rahmen_wert": "Südtirol, Provinz Bozen", "rahmen_bedeutung": "seit 2026-09-09", "portale": [{"name": "immobiliare.it", "status": "aktiv", "beschreibung": "Meistbesuchtes italienisches Portal. Flächenfilter funktioniert, 43 statt 3.255 Treffer in der Provinz Bozen", "url": "https://www.immobiliare.it/vendita-case/bolzano-provincia/?superficieMassima=35"}, {"name": "casa.it", "status": "aktiv", "beschreibung": "Traditionelles Fachportal mit breiter Abdeckung. Flächenfilter noch nicht gefunden, wird lokal gesiebt", "url": "https://www.casa.it/vendita/residenziale/bolzano-provincia/"}, {"name": "idealista.it", "status": "inaktiv", "beschreibung": "Antwortet mit einer Zustimmungswand statt mit Inhalt. Braucht die Browser API", "url": ""}]}], "ausschluss": []}, "miet": {"einstellungen": [{"titel": "Suchparameter", "zeilen": [{"k": "Objekttyp", "v": "Wohnung", "b": "Es werden nur Mietwohnungen erfasst"}, {"k": "Zimmer von", "v": "1", "b": "Untergrenze Zimmeranzahl"}, {"k": "Zimmer bis", "v": "2", "b": "Obergrenze Zimmeranzahl"}, {"k": "Mindestfläche", "v": "15", "b": "Inserate kleiner als dieser Wert werden ignoriert (in m²)"}, {"k": "Maximalfläche", "v": "100", "b": "Inserate größer als dieser Wert werden ignoriert (in m²)"}, {"k": "Region", "v": "Tirol", "b": "Es zählen alle PLZ aus der Liste weiter unten"}, {"k": "Bundesland", "v": "Tirol", "b": "Für das Archiv und die Spalte Bundesland"}]}, {"titel": "Berechnungsregeln", "zeilen": [{"k": "Mindestanzahl Inserate", "v": "5", "b": "Unter dieser Zahl gibt es für die PLZ keinen Mietwert sondern den Vermerk keine Daten"}, {"k": "Seiten je Portal", "v": "3", "b": "Wie viele Ergebnisseiten der Agent je Portal durchblättert. Höher heißt breitere Abdeckung aber mehr Bright Data Anfragen. Startwert 3"}, {"k": "Mittelwertart Miete", "v": "Median", "b": "Median des Netto Mietpreises pro m², robust gegen Ausreißer"}, {"k": "Mittelwertart Betriebskosten", "v": "Durchschnitt", "b": "Durchschnitt der Betriebskosten pro m², nur aus Listenseiten"}, {"k": "Mietart", "v": "Netto", "b": "Es zählt die Netto Kaltmiete, Betriebskosten werden getrennt geführt"}]}], "portale": [{"name": "willhaben.at", "status": "aktiv", "url": "https://www.willhaben.at/iad/immobilien/mietwohnungen/tirol?rows=90"}, {"name": "immo.tt.com", "status": "aktiv", "url": "https://immo.tt.com/mietobjekt/wohnung/tirol"}, {"name": "immmo.at", "status": "aktiv", "url": "https://www.immmo.at/immo/Wohnung-mieten/Tirol"}, {"name": "immobilienscout24.at", "status": "aktiv", "url": "https://www.immobilienscout24.at/regional/tirol/wohnung-mieten"}], "plz": [{"titel": "Bezirk Innsbruck Stadt", "eintraege": [{"plz": "6020", "ort": "Innsbruck"}, {"plz": "6080", "ort": "Innsbruck Igls"}]}, {"titel": "Bezirk Innsbruck Land", "eintraege": [{"plz": "6060", "ort": "Hall in Tirol"}, {"plz": "6060", "ort": "Absam"}, {"plz": "6063", "ort": "Rum"}, {"plz": "6065", "ort": "Thaur"}, {"plz": "6067", "ort": "Absam"}, {"plz": "6068", "ort": "Mils bei Hall"}, {"plz": "6070", "ort": "Ampass"}, {"plz": "6071", "ort": "Aldrans"}, {"plz": "6072", "ort": "Lans"}, {"plz": "6073", "ort": "Sistrans"}, {"plz": "6074", "ort": "Rinn"}, {"plz": "6075", "ort": "Tulfes"}, {"plz": "6082", "ort": "Patsch"}, {"plz": "6083", "ort": "Ellbögen"}, {"plz": "6091", "ort": "Götzens"}, {"plz": "6092", "ort": "Birgitz"}, {"plz": "6094", "ort": "Axams"}, {"plz": "6095", "ort": "Grinzens"}, {"plz": "6100", "ort": "Seefeld in Tirol"}, {"plz": "6103", "ort": "Reith bei Seefeld"}, {"plz": "6105", "ort": "Leutasch"}, {"plz": "6108", "ort": "Scharnitz"}, {"plz": "6111", "ort": "Volders"}, {"plz": "6112", "ort": "Wattens"}, {"plz": "6113", "ort": "Wattenberg"}, {"plz": "6114", "ort": "Kolsass"}, {"plz": "6116", "ort": "Weer"}, {"plz": "6121", "ort": "Baumkirchen"}, {"plz": "6122", "ort": "Fritzens"}, {"plz": "6123", "ort": "Terfens"}, {"plz": "6130", "ort": "Wattens Umland"}, {"plz": "6141", "ort": "Schönberg im Stubaital"}, {"plz": "6143", "ort": "Matrei am Brenner"}, {"plz": "6150", "ort": "Steinach am Brenner"}, {"plz": "6152", "ort": "Trins"}, {"plz": "6154", "ort": "St. Jodok am Brenner"}, {"plz": "6156", "ort": "Gries am Brenner"}, {"plz": "6157", "ort": "Obernberg am Brenner"}, {"plz": "6161", "ort": "Natters"}, {"plz": "6162", "ort": "Mutters"}, {"plz": "6166", "ort": "Fulpmes"}, {"plz": "6167", "ort": "Neustift im Stubaital"}, {"plz": "6168", "ort": "Telfes im Stubai"}, {"plz": "6173", "ort": "Oberperfuss"}, {"plz": "6175", "ort": "Kematen in Tirol"}, {"plz": "6176", "ort": "Völs"}, {"plz": "6178", "ort": "Sellrain"}, {"plz": "6182", "ort": "Gries im Sellrain"}, {"plz": "6410", "ort": "Telfs"}, {"plz": "6413", "ort": "Wildermieming"}, {"plz": "6414", "ort": "Mieming"}, {"plz": "6416", "ort": "Obsteig"}]}, {"titel": "Bezirk Imst", "eintraege": [{"plz": "6410", "ort": "Telfs Umland"}, {"plz": "6422", "ort": "Stams"}, {"plz": "6423", "ort": "Mötz"}, {"plz": "6424", "ort": "Silz"}, {"plz": "6425", "ort": "Haiming"}, {"plz": "6430", "ort": "Ötztal Bahnhof"}, {"plz": "6432", "ort": "Sautens"}, {"plz": "6433", "ort": "Oetz"}, {"plz": "6441", "ort": "Umhausen"}, {"plz": "6444", "ort": "Längenfeld"}, {"plz": "6450", "ort": "Sölden"}, {"plz": "6456", "ort": "Obergurgl"}, {"plz": "6460", "ort": "Imst"}, {"plz": "6462", "ort": "Karres"}, {"plz": "6463", "ort": "Karrösten"}, {"plz": "6464", "ort": "Tarrenz"}, {"plz": "6465", "ort": "Nassereith"}, {"plz": "6471", "ort": "Arzl im Pitztal"}, {"plz": "6473", "ort": "Wenns"}, {"plz": "6474", "ort": "Jerzens"}, {"plz": "6481", "ort": "St. Leonhard im Pitztal"}, {"plz": "6491", "ort": "Schönwies"}]}, {"titel": "Bezirk Landeck", "eintraege": [{"plz": "6500", "ort": "Landeck"}, {"plz": "6511", "ort": "Zams"}, {"plz": "6521", "ort": "Fließ"}, {"plz": "6522", "ort": "Prutz"}, {"plz": "6531", "ort": "Ried im Oberinntal"}, {"plz": "6532", "ort": "Ladis"}, {"plz": "6533", "ort": "Fiss"}, {"plz": "6534", "ort": "Serfaus"}, {"plz": "6541", "ort": "Tösens"}, {"plz": "6542", "ort": "Pfunds"}, {"plz": "6543", "ort": "Nauders"}, {"plz": "6551", "ort": "Pians"}, {"plz": "6553", "ort": "See im Paznaun"}, {"plz": "6555", "ort": "Kappl"}, {"plz": "6561", "ort": "Ischgl"}, {"plz": "6563", "ort": "Galtür"}, {"plz": "6571", "ort": "Strengen"}, {"plz": "6572", "ort": "Flirsch"}, {"plz": "6580", "ort": "St. Anton am Arlberg"}]}, {"titel": "Bezirk Reutte", "eintraege": [{"plz": "6600", "ort": "Reutte"}, {"plz": "6600", "ort": "Lechaschau"}, {"plz": "6600", "ort": "Pflach"}, {"plz": "6604", "ort": "Höfen"}, {"plz": "6610", "ort": "Wängle"}, {"plz": "6611", "ort": "Heiterwang"}, {"plz": "6621", "ort": "Bichlbach"}, {"plz": "6622", "ort": "Berwang"}, {"plz": "6631", "ort": "Lermoos"}, {"plz": "6632", "ort": "Ehrwald"}, {"plz": "6633", "ort": "Biberwier"}, {"plz": "6642", "ort": "Stanzach"}, {"plz": "6644", "ort": "Elmen"}, {"plz": "6646", "ort": "Häselgehr"}, {"plz": "6647", "ort": "Bach"}, {"plz": "6651", "ort": "Häselgehr Umland"}, {"plz": "6671", "ort": "Weißenbach am Lech"}, {"plz": "6672", "ort": "Nesselwängle"}, {"plz": "6673", "ort": "Grän"}, {"plz": "6675", "ort": "Tannheim"}, {"plz": "6677", "ort": "Schattwald"}, {"plz": "6691", "ort": "Jungholz"}]}, {"titel": "Bezirk Schwaz", "eintraege": [{"plz": "6130", "ort": "Schwaz"}, {"plz": "6133", "ort": "Weerberg"}, {"plz": "6134", "ort": "Vomp"}, {"plz": "6135", "ort": "Stans"}, {"plz": "6136", "ort": "Pill"}, {"plz": "6200", "ort": "Jenbach"}, {"plz": "6210", "ort": "Wiesing"}, {"plz": "6212", "ort": "Maurach am Achensee"}, {"plz": "6213", "ort": "Pertisau"}, {"plz": "6215", "ort": "Achenkirch"}, {"plz": "6220", "ort": "Buch in Tirol"}, {"plz": "6230", "ort": "Brixlegg"}, {"plz": "6232", "ort": "Münster"}, {"plz": "6233", "ort": "Kramsach"}, {"plz": "6235", "ort": "Reith im Alpbachtal"}, {"plz": "6236", "ort": "Alpbach"}, {"plz": "6240", "ort": "Rattenberg"}, {"plz": "6250", "ort": "Kundl"}, {"plz": "6252", "ort": "Breitenbach am Inn"}, {"plz": "6261", "ort": "Strass im Zillertal"}, {"plz": "6262", "ort": "Schlitters"}, {"plz": "6263", "ort": "Fügen"}, {"plz": "6264", "ort": "Fügenberg"}, {"plz": "6271", "ort": "Uderns"}, {"plz": "6272", "ort": "Kaltenbach"}, {"plz": "6273", "ort": "Ried im Zillertal"}, {"plz": "6275", "ort": "Stumm"}, {"plz": "6280", "ort": "Zell am Ziller"}, {"plz": "6281", "ort": "Gerlos"}, {"plz": "6283", "ort": "Hippach"}, {"plz": "6284", "ort": "Ramsau im Zillertal"}, {"plz": "6290", "ort": "Mayrhofen"}, {"plz": "6292", "ort": "Finkenberg"}, {"plz": "6293", "ort": "Tux"}]}, {"titel": "Bezirk Kufstein", "eintraege": [{"plz": "6300", "ort": "Wörgl"}, {"plz": "6305", "ort": "Itter"}, {"plz": "6306", "ort": "Söll"}, {"plz": "6311", "ort": "Wildschönau Oberau"}, {"plz": "6314", "ort": "Wildschönau Niederau"}, {"plz": "6320", "ort": "Angerberg"}, {"plz": "6321", "ort": "Angath"}, {"plz": "6322", "ort": "Kirchbichl"}, {"plz": "6323", "ort": "Bad Häring"}, {"plz": "6324", "ort": "Mariastein"}, {"plz": "6330", "ort": "Kufstein"}, {"plz": "6334", "ort": "Schwoich"}, {"plz": "6336", "ort": "Langkampfen"}, {"plz": "6341", "ort": "Ebbs"}, {"plz": "6342", "ort": "Niederndorf"}, {"plz": "6343", "ort": "Erl"}, {"plz": "6344", "ort": "Walchsee"}, {"plz": "6345", "ort": "Kössen"}, {"plz": "6351", "ort": "Scheffau am Wilden Kaiser"}, {"plz": "6352", "ort": "Ellmau"}, {"plz": "6353", "ort": "Going am Wilden Kaiser"}]}, {"titel": "Bezirk Kitzbühel", "eintraege": [{"plz": "6361", "ort": "Hopfgarten im Brixental"}, {"plz": "6363", "ort": "Westendorf"}, {"plz": "6364", "ort": "Brixen im Thale"}, {"plz": "6365", "ort": "Kirchberg in Tirol"}, {"plz": "6370", "ort": "Kitzbühel"}, {"plz": "6370", "ort": "Reith bei Kitzbühel"}, {"plz": "6373", "ort": "Jochberg"}, {"plz": "6380", "ort": "St. Johann in Tirol"}, {"plz": "6382", "ort": "Kirchdorf in Tirol"}, {"plz": "6383", "ort": "Erpfendorf"}, {"plz": "6384", "ort": "Waidring"}, {"plz": "6391", "ort": "Fieberbrunn"}, {"plz": "6392", "ort": "St. Jakob in Haus"}, {"plz": "6393", "ort": "St. Ulrich am Pillersee"}, {"plz": "6395", "ort": "Hochfilzen"}]}, {"titel": "Bezirk Lienz Osttirol", "eintraege": [{"plz": "9900", "ort": "Lienz"}, {"plz": "9905", "ort": "Gaimberg"}, {"plz": "9907", "ort": "Tristach"}, {"plz": "9908", "ort": "Amlach"}, {"plz": "9909", "ort": "Leisach"}, {"plz": "9911", "ort": "Assling"}, {"plz": "9912", "ort": "Anras"}, {"plz": "9913", "ort": "Abfaltersbach"}, {"plz": "9918", "ort": "Strassen"}, {"plz": "9919", "ort": "Heinfels"}, {"plz": "9920", "ort": "Sillian"}, {"plz": "9931", "ort": "Außervillgraten"}, {"plz": "9932", "ort": "Innervillgraten"}, {"plz": "9941", "ort": "Kartitsch"}, {"plz": "9942", "ort": "Obertilliach"}, {"plz": "9943", "ort": "Untertilliach"}, {"plz": "9951", "ort": "Ainet"}, {"plz": "9952", "ort": "Schlaiten"}, {"plz": "9954", "ort": "Iselsberg"}, {"plz": "9961", "ort": "Hopfgarten in Defereggen"}, {"plz": "9962", "ort": "St. Veit in Defereggen"}, {"plz": "9963", "ort": "St. Jakob in Defereggen"}, {"plz": "9971", "ort": "Matrei in Osttirol"}, {"plz": "9974", "ort": "Prägraten am Großvenediger"}, {"plz": "9981", "ort": "Kals am Großglockner"}, {"plz": "9990", "ort": "Nußdorf Debant"}, {"plz": "9991", "ort": "Dölsach"}, {"plz": "9992", "ort": "Iselsberg Stronach"}]}]}};
+const clone = o => JSON.parse(JSON.stringify(o));
+const LS = "bb-steuerung-entwurf";
+let st = clone(ORIG), tab = "beton", offen = new Set(["land:AT"]), hinweisEntwurf = "";
+try {
+  const e = JSON.parse(localStorage.getItem(LS) || "null");
+  if (e && e.basis === ORIG.stand) st = e.st;
+  else if (e) hinweisEntwurf = "Dein früherer Entwurf beruhte auf einem älteren Stand und wurde verworfen. Du siehst jetzt den aktuellen Stand.";
+} catch (_) {}
+const merke = () => { try { localStorage.setItem(LS, JSON.stringify({basis: ORIG.stand, st})); } catch (_) {} };
+
+const OPTIONEN = {
+  "Reihenfolge": ["Kaufpreis aufsteigend", "Kaufpreis absteigend", "Fläche aufsteigend", "Neueste zuerst"],
+  "Nachricht je Objekt": ["volle Nachricht", "kurze Nachricht"],
+  "Mittelwertart Miete": ["Median", "Durchschnitt"],
+  "Mittelwertart Betriebskosten": ["Durchschnitt", "Median"],
+  "Mietart": ["Netto", "Brutto"],
+  "Objekttyp": ["Wohnung", "Haus", "Wohnung oder Haus"],
+};
+const heute = () => new Date().toISOString().slice(0, 10);
+const flagge = c => c.toUpperCase().slice(0, 2).replace(/[A-Z]/g, ch => String.fromCodePoint(0x1F1E6 + ch.charCodeAt(0) - 65));
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ohneCode = s => String(s ?? "").replace(/`/g, "");
+
+/* ---------- Schlüssel und Änderungen ---------- */
+function schluessel(o) {
+  if (typeof o === "string") return o;
+  if ("code" in o) return o.code;
+  if ("k" in o) return o.k;
+  if ("plz" in o) return o.plz + " " + o.ort;
+  if ("name" in o) return o.name;
+  return o.titel || "";
+}
+const IGNOR = new Set(["intro", "outro", "auto", "stand"]);
+const FELD = {an: null, aktiv: "aktiv", v: "Wert", status: "Status", url: "Such URL", beschreibung: "Beschreibung",
+  max_nachrichten: "maximale Nachrichten", rahmen_wert: "Gebiet", name: "Name"};
+
+function diff(a, b, pfad, text, ops) {
+  if (Array.isArray(a) || Array.isArray(b)) {
+    a = a || []; b = b || [];
+    const LISTE = {ausschluss: "Ausschlussliste", laender: "Land", portale: "Portal", plz: "PLZ Gruppe", listen: "Liste", gruppen: "Gruppe"};
+    const lt = LISTE[pfad[pfad.length - 1]];
+    const vor = [...text, ...(lt ? [lt] : [])].join(", ");
+    const ka = a.map(schluessel), kb = b.map(schluessel);
+    for (const x of a) if (!kb.includes(schluessel(x)))
+      ops.push({op: "del", pfad, key: schluessel(x), text: `${vor}, ${schluessel(x)} entfernt`});
+    b.forEach((x, i) => {
+      const k = schluessel(x);
+      if (!ka.includes(k)) ops.push({op: "add", pfad, wert: x, nach: i ? schluessel(b[i - 1]) : null,
+        text: `${vor}, ${typeof x === "string" ? x : (x.name || k)} neu${x.status ? " (" + x.status + ")" : ""}`});
+    });
+    for (const x of b) {
+      const k = schluessel(x), alt = a.find(y => schluessel(y) === k);
+      if (alt && typeof x === "object") diff(alt, x, [...pfad, k], [...text, x.name || x.titel || x.k || k], ops);
+    }
+    const gemeinsam = kb.filter(k => ka.includes(k));
+    if (pfad[pfad.length - 1] === "laender" && gemeinsam.join() !== ka.filter(k => kb.includes(k)).join())
+      ops.push({op: "order", pfad, keys: kb, text: `Reihenfolge der Länder ${kb.join(", ")}`});
+    return;
+  }
+  a = a || {}; b = b || {};
+  for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    if (IGNOR.has(k)) continue;
+    const x = a[k], y = b[k];
+    if (typeof y === "object" && y !== null) { diff(x, y, [...pfad, k], text, ops); continue; }
+    if (x === y) continue;
+    let t;
+    if (k === "an") t = `${text.join(", ")} ${y ? "angehakt" : "abgewählt"}`;
+    else if (k === "aktiv") t = `${text.join(", ")} ${y ? "eingeschaltet" : "ausgeschaltet"}`;
+    else if (k === "v") t = `${text.join(", ")} von „${x ?? ""}“ auf „${y}“`;
+    else t = `${text.join(", ")}, ${FELD[k] || k} von „${x ?? ""}“ auf „${y}“`;
+    ops.push({op: "set", pfad: [...pfad, k], alt: x, neu: y, text: t});
+  }
+}
+function aenderungen() {
+  const ops = [];
+  diff(ORIG.beton, st.beton, ["beton"], ["Beton-Basti"], ops);
+  diff(ORIG.miet, st.miet, ["miet"], ["Mietspiegel"], ops);
+  return ops;
+}
+
+/* ---------- Bausteine ---------- */
+function schalter(an, fn) {
+  const l = document.createElement("label"); l.className = "sw";
+  l.innerHTML = `<input type="checkbox" ${an ? "checked" : ""}><span></span>`;
+  l.querySelector("input").onchange = e => { fn(e.target.checked); neu(); };
+  return l;
+}
+function el(html) { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstChild; }
+function feldZeile(z) {
+  const r = el(`<div class="row"><div class="lbl"><b>${esc(z.k)}</b><small>${esc(ohneCode(z.b))}</small></div></div>`);
+  if (z.auto) { r.append(el(`<span class="muted">${esc(z.v)}</span>`)); return r; }
+  const v = String(z.v);
+  if (/^(ja|nein)$/i.test(v)) r.append(schalter(/^ja$/i.test(v), on => z.v = on ? "ja" : "nein"));
+  else if (OPTIONEN[z.k]) {
+    const opts = OPTIONEN[z.k].includes(v) ? OPTIONEN[z.k] : [v, ...OPTIONEN[z.k]];
+    const s = el(`<select>${opts.map(o => `<option ${o === v ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`);
+    s.onchange = () => { z.v = s.value; neu(); }; r.append(s);
+  } else if (/^\d+$/.test(v)) {
+    const i = el(`<input type="number" min="0" value="${esc(v)}">`);
+    i.onchange = () => { z.v = i.value; neu(); }; r.append(i);
+  } else {
+    const i = el(`<input type="text" value="${esc(v)}">`);
+    i.onchange = () => { z.v = i.value.trim(); neu(); }; r.append(i);
+  }
+  return r;
+}
+function hinzufuegen(platzhalter, fn) {
+  const d = el(`<div class="add"><input type="text" placeholder="${esc(platzhalter)}"><button class="btn sm">Hinzufügen</button></div>`);
+  const i = d.querySelector("input");
+  const go = () => { const v = i.value.trim(); if (v) { fn(v); neu(); } };
+  d.querySelector("button").onclick = go;
+  i.onkeydown = e => { if (e.key === "Enter") go(); };
+  return d;
+}
+function klappe(id, kopfHtml, inhalt, extra) {
+  const d = el(`<details class="card"><summary><span class="chev">▸</span></summary></details>`);
+  if (offen.has(id)) d.open = true;
+  d.ontoggle = () => d.open ? offen.add(id) : offen.delete(id);
+  const h = el(`<h2>${kopfHtml}</h2>`); d.querySelector("summary").append(h);
+  if (extra) d.querySelector("summary").append(extra);
+  d.append(inhalt); return d;
+}
+function div(...kids) { const d = document.createElement("div"); d.append(...kids.filter(Boolean)); return d; }
+
+/* ---------- Portale ---------- */
+function portalListe(portale, mitBeschreibung, urlHinweis) {
+  const box = div();
+  if (!portale.length) box.append(el(`<p class="empty">Noch keine Portale</p>`));
+  portale.forEach((p, i) => {
+    const neuP = /ungeprüft/.test(p.status);
+    const r = el(`<div class="portal"><div><span class="name">${esc(p.name)}</span> ${neuP ? '<span class="tag">neu, wird von Lucas geprüft</span>' : ""}</div><div class="ctl"></div><div class="meta"></div></div>`);
+    const ctl = r.querySelector(".ctl");
+    if (!neuP) ctl.append(schalter(p.status === "aktiv", on => p.status = on ? "aktiv" : "inaktiv"));
+    else { const x = el(`<button class="x" title="Entfernen">✕</button>`); x.onclick = () => { portale.splice(i, 1); neu(); }; ctl.append(x); }
+    const meta = r.querySelector(".meta");
+    if (mitBeschreibung) {
+      const b = el(`<input type="text" placeholder="Beschreibung" value="${esc(p.beschreibung)}">`);
+      b.onchange = () => { p.beschreibung = b.value.trim(); neu(); }; meta.append(b);
+    }
+    const u = el(`<input type="url" placeholder="${esc(urlHinweis)}" value="${esc(p.url)}">`);
+    u.onchange = () => { p.url = u.value.trim(); neu(); }; meta.append(u);
+    box.append(r);
+  });
+  const f = el(`<div class="grp"><b>Portal hinzufügen</b>
+    <div style="display:grid;gap:6px;margin-top:8px">
+      <input type="text" name="n" placeholder="Name, zum Beispiel homegate.ch">
+      <input type="url" name="u" placeholder="Link zur Suchseite mit Ergebnisliste">
+      ${mitBeschreibung ? '<input type="text" name="b" placeholder="Kurze Beschreibung, optional">' : ""}
+      <div><button class="btn sm">Portal hinzufügen</button></div>
+    </div>
+    <p class="muted" style="margin:6px 0 0;font-size:13px">Neue Portale werden beim Einpflegen einmal getestet und erst danach durchsucht.</p></div>`);
+  f.querySelector("button").onclick = () => {
+    const n = f.querySelector("[name=n]").value.trim(); if (!n) return;
+    if (portale.some(p => p.name === n)) return alert("Dieses Portal gibt es schon.");
+    const p = {name: n, status: "neu, ungeprüft", url: f.querySelector("[name=u]").value.trim()};
+    if (mitBeschreibung) p.beschreibung = f.querySelector("[name=b]").value.trim() || `über die Steuerseite ergänzt am ${heute()}`;
+    portale.push(p); neu();
+  };
+  box.append(f);
+  return box;
+}
+
+/* ---------- Beton-Basti ---------- */
+function landKarte(l, idx, alle) {
+  const inhalt = div();
+  const ganz = l.einstellungen.find(z => /^Ganz/i.test(z.k));
+  inhalt.append(el(`<h3>Gebiet</h3>`));
+  const eb = div(); l.einstellungen.forEach(z => eb.append(feldZeile(z)));
+  const mx = {k: "Maximale Nachrichten", v: l.max_nachrichten, b: "Höchstzahl Telegram Nachrichten für dieses Land je Lauf"};
+  const mr = feldZeile(mx); mr.querySelector("input").onchange = e => { l.max_nachrichten = e.target.value; neu(); };
+  eb.append(mr); inhalt.append(eb);
+  if (ganz && /^ja$/i.test(ganz.v)) inhalt.append(el(`<div class="hint">${esc(ganz.k)} ist eingeschaltet. Die Häkchen unten zählen erst, wenn du das ausschaltest.</div>`));
+
+  l.listen.forEach((li, liIdx) => {
+    inhalt.append(el(`<h3>${esc(li.titel)}</h3>`));
+    li.intro.forEach(t => inhalt.append(el(`<p class="muted" style="margin:0 0 6px;font-size:14px">${esc(ohneCode(t.replace(/^> /, "")))}</p>`)));
+    li.gruppen.forEach((g, gi) => {
+      const box = el(`<div class="grp"><div class="grp-h"><b>${esc(g.titel || li.titel)}</b></div><div class="chips"></div></div>`);
+      const kopf = box.querySelector(".grp-h");
+      const alleAn = g.items.length && g.items.every(i => i.an);
+      const t = el(`<button class="btn sm">${alleAn ? "Alle abwählen" : "Alle anhaken"}</button>`);
+      t.onclick = () => { g.items.forEach(i => i.an = !alleAn); neu(); };
+      if (g.items.length) kopf.append(t);
+      if (!g.items.length && g.titel) { const x = el(`<button class="x" title="Gruppe entfernen">✕</button>`); x.onclick = () => { li.gruppen.splice(gi, 1); neu(); }; kopf.append(x); }
+      const chips = box.querySelector(".chips");
+      if (!g.items.length) chips.append(el(`<span class="empty">leer</span>`));
+      g.items.forEach((it, ii) => {
+        const c = el(`<label class="chip ${it.an ? "on" : ""}"><input type="checkbox" ${it.an ? "checked" : ""}><span>${esc(it.name)}</span><button class="x" title="Entfernen">✕</button></label>`);
+        c.querySelector("input").onchange = e => { it.an = e.target.checked; neu(); };
+        c.querySelector(".x").onclick = e => { e.preventDefault(); if (confirm(`${it.name} ganz aus der Liste entfernen?`)) { g.items.splice(ii, 1); neu(); } };
+        chips.append(c);
+      });
+      box.append(hinzufuegen("Ort, PLZ, Bezirk oder Kreis hinzufügen", v => {
+        if (g.items.some(i => i.name === v)) return alert("Gibt es schon.");
+        g.items.push({name: v, an: true});
+      }));
+      inhalt.append(box);
+    });
+    const ng = el(`<div class="tools"><button class="btn sm">Gruppe in ${esc(li.titel)} anlegen</button></div>`);
+    ng.querySelector("button").onclick = () => {
+      const n = prompt("Name der Gruppe, zum Beispiel Oberland"); if (!n) return;
+      li.gruppen.push({titel: n.trim(), items: []}); neu();
+    };
+    inhalt.append(ng);
+  });
+  const nl = el(`<div class="tools"><button class="btn sm">Neue Liste anlegen, etwa Kantone oder Orte</button></div>`);
+  nl.querySelector("button").onclick = () => {
+    const n = prompt("Titel der Liste, zum Beispiel Kantone"); if (!n) return;
+    if (l.listen.some(x => x.titel === n.trim())) return alert("Gibt es schon.");
+    l.listen.push({titel: n.trim(), intro: [], gruppen: [{titel: "", items: []}], outro: []}); neu();
+  };
+  inhalt.append(nl);
+
+  inhalt.append(el(`<h3>Portale in ${esc(l.name)}</h3>`));
+  inhalt.append(portalListe(l.portale, true, "Link zur Suchseite"));
+
+  if (!ORIG.beton.laender.some(o => o.code === l.code)) {
+    const w = el(`<div class="tools"><button class="btn sm">Land wieder entfernen</button></div>`);
+    w.querySelector("button").onclick = () => { alle.splice(idx, 1); neu(); };
+    inhalt.append(w);
+  }
+  const extra = div();
+  extra.className = "order";
+  const hoch = el(`<button class="x" title="Nach oben">↑</button>`), runter = el(`<button class="x" title="Nach unten">↓</button>`);
+  hoch.onclick = e => { e.preventDefault(); if (idx > 0) { [alle[idx - 1], alle[idx]] = [alle[idx], alle[idx - 1]]; neu(); } };
+  runter.onclick = e => { e.preventDefault(); if (idx < alle.length - 1) { [alle[idx + 1], alle[idx]] = [alle[idx], alle[idx + 1]]; neu(); } };
+  const sw = schalter(l.aktiv, on => l.aktiv = on); sw.onclick = e => e.stopPropagation();
+  extra.append(hoch, runter, sw);
+  const kopf = `<span class="flag">${l.flagge}</span> ${esc(l.name)} <span class="muted" style="font-weight:400;font-size:14px">${l.aktiv ? "aktiv" : "aus"}${ganz && /^ja$/i.test(ganz.v) ? ", ganzes Gebiet" : ""}</span>`;
+  return klappe("land:" + l.code, kopf, inhalt, extra);
+}
+
+function neuesLand() {
+  const box = el(`<div class="card"><h2>Land hinzufügen</h2>
+    <div style="display:grid;gap:8px;grid-template-columns:1fr 1fr">
+      <input type="text" name="name" placeholder="Name, zum Beispiel Schweiz">
+      <input type="text" name="code" placeholder="Länderkürzel, zum Beispiel CH" maxlength="2">
+      <input type="text" name="region" placeholder="Gebiet, zum Beispiel Graubünden" style="grid-column:1/-1">
+      <input type="text" name="liste" placeholder="Bezeichnung der Gebiete, zum Beispiel Kantone oder Regionen" style="grid-column:1/-1">
+    </div>
+    <div class="tools" style="margin-top:10px"><button class="btn pri">Land anlegen</button></div>
+    <p class="muted" style="margin:0;font-size:13px">Danach im neuen Land Orte und Portale eintragen. Lucas prüft die Portale beim Einpflegen.</p></div>`);
+  box.querySelector("button").onclick = () => {
+    const g = n => box.querySelector(`[name=${n}]`).value.trim();
+    const name = g("name"), code = g("code").toUpperCase();
+    if (!name || !/^[A-Z]{2}$/.test(code)) return alert("Bitte Name und ein zweistelliges Länderkürzel angeben.");
+    if (st.beton.laender.some(l => l.code === code)) return alert("Dieses Land gibt es schon.");
+    const region = g("region") || name;
+    st.beton.laender.push({
+      code, flagge: flagge(code), name, aktiv: true, bedeutung: region,
+      einstellungen: [
+        {k: "Ganzes Gebiet", v: "ja", b: "Bei ja sucht der Bot im ganzen Gebiet und ignoriert die Häkchen unten. Bei nein zählt nur, was unten angehakt ist"},
+        {k: "Region", v: region, b: "Bezugsrahmen für die Portal Abfragen"}],
+      listen: [{titel: g("liste") || "Orte", intro: [], gruppen: [{titel: "", items: []}], outro: []}],
+      portale: [], max_nachrichten: "10", max_bedeutung: `Obergrenze für den ${code} Block`,
+      rahmen_wert: region, rahmen_bedeutung: `seit ${heute()}, über die Steuerseite ergänzt`,
+    });
+    offen.add("land:" + code); neu();
+  };
+  return box;
+}
+
+function betonTab() {
+  const app = div();
+  st.beton.einstellungen.forEach(e => {
+    const inhalt = div(); e.zeilen.forEach(z => inhalt.append(feldZeile(z)));
+    app.append(klappe("rb:" + e.titel, esc(e.titel), inhalt));
+  });
+  app.append(el(`<h2 style="font-size:18px;margin:22px 0 10px">Länder und Gebiete</h2>`));
+  st.beton.laender.forEach((l, i, a) => app.append(landKarte(l, i, a)));
+  app.append(neuesLand());
+  const aus = el(`<div class="card"><h2>Ausschlussliste</h2><p class="muted" style="margin:0 0 8px">Orte oder Postleitzahlen, die nie gemeldet werden, in keinem Land.</p><div class="chips"></div></div>`);
+  const ch = aus.querySelector(".chips");
+  if (!st.beton.ausschluss.length) ch.append(el(`<span class="empty">leer</span>`));
+  st.beton.ausschluss.forEach((a, i) => {
+    const c = el(`<span class="chip on">${esc(a)}<button class="x">✕</button></span>`);
+    c.querySelector(".x").onclick = () => { st.beton.ausschluss.splice(i, 1); neu(); };
+    ch.append(c);
+  });
+  aus.append(hinzufuegen("Ort oder PLZ ausschließen", v => { if (!st.beton.ausschluss.includes(v)) st.beton.ausschluss.push(v); }));
+  app.append(aus);
+  return app;
+}
+
+/* ---------- Mietspiegel ---------- */
+function mietTab() {
+  const app = div(), m = st.miet;
+  m.einstellungen.forEach(e => {
+    const inhalt = div(); e.zeilen.forEach(z => inhalt.append(feldZeile(z)));
+    app.append(klappe("ms:" + e.titel, esc(e.titel), inhalt));
+  });
+  app.append(klappe("ms:portale", "Portale", portalListe(m.portale, false, "Link zur Miet Suchseite")));
+  const pl = div();
+  pl.append(el(`<p class="muted" style="margin:0 0 8px">Nur Inserate mit einer Postleitzahl aus dieser Liste fließen in den Mietspiegel ein.</p>`));
+  m.plz.forEach((g, gi) => {
+    const inh = div();
+    const grid = el(`<div class="plz"></div>`);
+    g.eintraege.forEach((e, ei) => {
+      grid.append(el(`<span>${esc(e.plz)}</span>`), el(`<span>${esc(e.ort)}</span>`));
+      const x = el(`<button class="x" title="Entfernen">✕</button>`); x.onclick = () => { g.eintraege.splice(ei, 1); neu(); }; grid.append(x);
+    });
+    inh.append(grid);
+    const f = el(`<div class="add"><input type="text" name="p" placeholder="PLZ" style="flex:0 0 90px"><input type="text" name="o" placeholder="Ort"><button class="btn sm">Hinzufügen</button></div>`);
+    f.querySelector("button").onclick = () => {
+      const p = f.querySelector("[name=p]").value.trim(), o = f.querySelector("[name=o]").value.trim();
+      if (!p || !o) return;
+      if (g.eintraege.some(e => e.plz === p && e.ort === o)) return alert("Gibt es schon.");
+      g.eintraege.push({plz: p, ort: o}); neu();
+    };
+    inh.append(f);
+    if (!g.eintraege.length) { const w = el(`<div class="tools"><button class="btn sm">Gruppe entfernen</button></div>`); w.querySelector("button").onclick = () => { m.plz.splice(gi, 1); neu(); }; inh.append(w); }
+    pl.append(klappe("plz:" + g.titel, `${esc(g.titel)} <span class="muted" style="font-weight:400;font-size:14px">${g.eintraege.length} PLZ</span>`, inh));
+  });
+  const ng = el(`<div class="tools"><button class="btn sm">Neue Gruppe anlegen, etwa einen Bezirk oder eine Region</button></div>`);
+  ng.querySelector("button").onclick = () => {
+    const n = prompt("Name der Gruppe, zum Beispiel Bezirk Kufstein oder Kanton Graubünden"); if (!n) return;
+    if (m.plz.some(g => g.titel === n.trim())) return alert("Gibt es schon.");
+    m.plz.push({titel: n.trim(), eintraege: []}); offen.add("plz:" + n.trim()); neu();
+  };
+  pl.append(ng);
+  app.append(el(`<h2 style="font-size:18px;margin:22px 0 10px">Postleitzahlen</h2>`), pl);
+  return app;
+}
+
+/* ---------- Senden ---------- */
+let von = "", kommentar = "";
+try { von = localStorage.getItem("bb-von") || ""; } catch (_) {}
+function exportText(ops) {
+  const jetzt = new Date(), z = n => String(n).padStart(2, "0");
+  const erstellt = `${jetzt.getFullYear()}-${z(jetzt.getMonth() + 1)}-${z(jetzt.getDate())} ${z(jetzt.getHours())}:${z(jetzt.getMinutes())}`;
+  const daten = {von, erstellt, basis_stand: ORIG.stand, kommentar, ops};
+  return `---
+typ: beton-basti-einstellungen
+von: "${von.replace(/"/g, "'")}"
+erstellt: ${erstellt}
+basis_stand: ${ORIG.stand}
+---
+
+# Einstellungswunsch Beton-Basti
+
+Von ${von || "unbekannt"}, erstellt am ${erstellt}, auf Basis des Stands vom ${ORIG.stand}.
+${kommentar ? "\n> " + kommentar.replace(/\n/g, "\n> ") + "\n" : ""}
+## Änderungen
+
+${ops.map(o => "- " + o.text).join("\n")}
+
+## Datenblock
+
+Bitte nicht verändern, dieser Teil wird beim Einpflegen gelesen.
+
+\`\`\`json
+${JSON.stringify(daten, null, 1)}
+\`\`\`
+`;
+}
+function sendenTab() {
+  const ops = aenderungen(), app = div();
+  const c = el(`<div class="card"><h2>Deine Änderungen</h2></div>`);
+  if (!ops.length) c.append(el(`<p class="empty">Noch nichts geändert. Stell in den anderen Reitern ein, was du möchtest.</p>`));
+  else c.append(el(`<ul class="changes">${ops.map(o => `<li>${esc(o.text)}</li>`).join("")}</ul>`));
+  app.append(c);
+  if (!ops.length) return app;
+  const f = el(`<div class="card"><h2>Abschicken</h2>
+    <div style="display:grid;gap:8px">
+      <input type="text" name="von" placeholder="Dein Name" value="${esc(von)}">
+      <textarea name="k" placeholder="Kommentar für Lucas, optional">${esc(kommentar)}</textarea>
+    </div>
+    <div class="tools" style="margin-top:10px">
+      <button class="btn pri" name="dl">Datei herunterladen</button>
+      <button class="btn" name="cp">Text kopieren</button>
+    </div>
+    <p class="muted" style="margin:6px 0 0;font-size:14px">Schick die Datei an Lucas, per Mail oder Nachricht. Sobald er sie eingepflegt hat, zeigt diese Seite den neuen Stand.</p></div>`);
+  const vi = f.querySelector("[name=von]"), ki = f.querySelector("[name=k]");
+  vi.oninput = () => { von = vi.value.trim(); try { localStorage.setItem("bb-von", von); } catch (_) {} };
+  ki.oninput = () => { kommentar = ki.value.trim(); };
+  f.querySelector("[name=dl]").onclick = () => {
+    if (!von) return alert("Bitte gib deinen Namen an.");
+    const blob = new Blob([exportText(ops)], {type: "text/markdown"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `Beton-Basti Einstellungen ${von} ${heute()}.md`;
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+  f.querySelector("[name=cp]").onclick = async e => {
+    if (!von) return alert("Bitte gib deinen Namen an.");
+    try { await navigator.clipboard.writeText(exportText(ops)); e.target.textContent = "Kopiert"; }
+    catch (_) { alert("Kopieren hat nicht geklappt, nimm bitte den Download."); }
+  };
+  app.append(f);
+  const r = el(`<div class="tools"><button class="btn">Alle Änderungen verwerfen</button></div>`);
+  r.querySelector("button").onclick = () => { if (confirm("Alle Änderungen verwerfen und zum aktuellen Stand zurück?")) { st = clone(ORIG); neu(); } };
+  app.append(r);
+  return app;
+}
+
+/* ---------- Rahmen ---------- */
+function neu() {
+  merke();
+  const y = scrollY;
+  const n = aenderungen().length;
+  const tabs = [["beton", "Beton-Basti"], ["miet", "Mietspiegel"], ["senden", "Senden" + (n ? ` <span class="badge">${n}</span>` : "")]];
+  const t = document.getElementById("tabs"); t.innerHTML = "";
+  tabs.forEach(([id, txt]) => {
+    const b = el(`<button class="${tab === id ? "on" : ""}">${txt}</button>`);
+    b.onclick = () => { tab = id; neu(); scrollTo(0, 0); };
+    t.append(b);
+  });
+  const app = document.getElementById("app"); app.innerHTML = "";
+  if (hinweisEntwurf) app.append(el(`<div class="hint">${esc(hinweisEntwurf)}</div>`));
+  app.append(tab === "beton" ? betonTab() : tab === "miet" ? mietTab() : sendenTab());
+  scrollTo(0, y);
+}
+document.getElementById("stand").textContent = `Aktueller Stand der Agenten vom ${ORIG.stand}. Stell ein, was du ändern willst, und schick die Datei unter Senden an Lucas.`;
+neu();
+</script>
+</body>
+</html>
