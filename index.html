@@ -418,10 +418,36 @@ function mietTab() {
 /* ---------- Senden ---------- */
 let von = "", kommentar = "";
 try { von = localStorage.getItem("bb-von") || ""; } catch (_) {}
+const FRAGEN = [
+  {id: "nutzen", frage: "Wie hilfreich sind die Telegram Meldungen für deine Entscheidung?",
+   optionen: ["sehr hilfreich", "teilweise", "kaum", "bekomme keine Meldungen"]},
+  {id: "menge", frage: "Wie ist die Menge der Meldungen?",
+   optionen: ["zu viele", "passt", "zu wenige", "kann ich nicht sagen"]},
+  {id: "treffer", frage: "Passen die gemeldeten Wohnungen zu dem, was du suchst?",
+   optionen: ["meistens", "teilweise", "selten", "kann ich nicht sagen"]},
+  {id: "fehlt", frage: "Was fehlt dir in den Meldungen am meisten?",
+   optionen: ["nichts", "Lage und Umgebung", "Vergleich mit Mietpreisen", "Kosten wie Rücklage oder Sanierung", "bessere Fotobeschreibung"]},
+  {id: "bedienung", frage: "Wie gut ließ sich diese Seite bedienen?",
+   optionen: ["einfach", "ging so", "umständlich"]},
+];
+let fb = {antworten: {}, frei: "", uebersprungen: false};
+try { fb = Object.assign(fb, JSON.parse(localStorage.getItem("bb-feedback") || "{}")); } catch (_) {}
+const merkeFb = () => { try { localStorage.setItem("bb-feedback", JSON.stringify(fb)); } catch (_) {} };
+const offeneFragen = () => FRAGEN.filter(f => !fb.antworten[f.id]).length;
+function feedbackDaten() {
+  if (fb.uebersprungen) return null;
+  const fragen = FRAGEN.filter(f => fb.antworten[f.id]).map(f => ({frage: f.frage, antwort: fb.antworten[f.id]}));
+  if (!fragen.length && !fb.frei) return null;
+  return {fragen, frei: fb.frei};
+}
 function exportText(ops) {
   const jetzt = new Date(), z = n => String(n).padStart(2, "0");
   const erstellt = `${jetzt.getFullYear()}-${z(jetzt.getMonth() + 1)}-${z(jetzt.getDate())} ${z(jetzt.getHours())}:${z(jetzt.getMinutes())}`;
-  const daten = {von, erstellt, basis_stand: ORIG.stand, kommentar, ops};
+  const feedback = feedbackDaten();
+  const daten = {von, erstellt, basis_stand: ORIG.stand, kommentar, ops, feedback};
+  const fbText = feedback
+    ? feedback.fragen.map(f => `- ${f.frage} ${f.antwort}`).join("\n") + (feedback.frei ? `\n\n> ${feedback.frei.replace(/\n/g, "\n> ")}` : "")
+    : "Übersprungen.";
   return `---
 typ: beton-basti-einstellungen
 von: "${von.replace(/"/g, "'")}"
@@ -435,7 +461,11 @@ Von ${von || "unbekannt"}, erstellt am ${erstellt}, auf Basis des Stands vom ${O
 ${kommentar ? "\n> " + kommentar.replace(/\n/g, "\n> ") + "\n" : ""}
 ## Änderungen
 
-${ops.map(o => "- " + o.text).join("\n")}
+${ops.length ? ops.map(o => "- " + o.text).join("\n") : "Keine Änderungen, nur Feedback."}
+
+## Feedback
+
+${fbText}
 
 ## Datenblock
 
@@ -446,17 +476,45 @@ ${JSON.stringify(daten, null, 1)}
 \`\`\`
 `;
 }
+function feedbackKarte() {
+  const c = el(`<div class="card"><h2>Kurzes Feedback</h2>
+    <p class="muted" style="margin:0 0 10px">Fünf Klicks und eine offene Frage, etwa eine Minute. Damit wird Beton-Basti besser. Überspringen geht, hilft aber nicht weiter.</p></div>`);
+  if (fb.uebersprungen) {
+    const b = el(`<div class="tools"><span class="muted">Feedback übersprungen.</span><button class="btn sm">Doch beantworten</button></div>`);
+    b.querySelector("button").onclick = () => { fb.uebersprungen = false; merkeFb(); neu(); };
+    c.append(b); return c;
+  }
+  FRAGEN.forEach((f, i) => {
+    const box = el(`<div class="grp"><div style="margin-bottom:8px"><b>${i + 1}. ${esc(f.frage)}</b></div><div class="chips"></div></div>`);
+    f.optionen.forEach(o => {
+      const an = fb.antworten[f.id] === o;
+      const ch = el(`<label class="chip ${an ? "on" : ""}" style="padding-right:10px"><input type="radio" name="fb-${f.id}" ${an ? "checked" : ""}><span>${esc(o)}</span></label>`);
+      ch.querySelector("input").onchange = () => { fb.antworten[f.id] = o; merkeFb(); neu(); };
+      box.querySelector(".chips").append(ch);
+    });
+    c.append(box);
+  });
+  const frei = el(`<div class="grp"><div style="margin-bottom:8px"><b>6. Was läuft gut, was läuft schlecht, was würdest du verbessern?</b></div>
+    <textarea placeholder="Freie Antwort">${esc(fb.frei)}</textarea></div>`);
+  const ta = frei.querySelector("textarea");
+  ta.oninput = () => { fb.frei = ta.value.trim(); merkeFb(); };
+  c.append(frei);
+  const s = el(`<div class="tools"><button class="btn sm">Feedback überspringen</button></div>`);
+  s.querySelector("button").onclick = () => { fb.uebersprungen = true; merkeFb(); neu(); };
+  c.append(s);
+  return c;
+}
 function sendenTab() {
   const ops = aenderungen(), app = div();
   const c = el(`<div class="card"><h2>Deine Änderungen</h2></div>`);
-  if (!ops.length) c.append(el(`<p class="empty">Noch nichts geändert. Stell in den anderen Reitern ein, was du möchtest.</p>`));
+  if (!ops.length) c.append(el(`<p class="empty">Noch nichts geändert. Du kannst trotzdem nur Feedback schicken.</p>`));
   else c.append(el(`<ul class="changes">${ops.map(o => `<li>${esc(o.text)}</li>`).join("")}</ul>`));
   app.append(c);
-  if (!ops.length) return app;
+  app.append(feedbackKarte());
   const f = el(`<div class="card"><h2>Abschicken</h2>
     <div style="display:grid;gap:8px">
       <input type="text" name="von" placeholder="Dein Name" value="${esc(von)}">
-      <textarea name="k" placeholder="Kommentar für Lucas, optional">${esc(kommentar)}</textarea>
+      <textarea name="k" placeholder="Kommentar zu deinen Änderungen, optional">${esc(kommentar)}</textarea>
     </div>
     <div class="tools" style="margin-top:10px">
       <button class="btn pri" name="dl">Datei herunterladen</button>
@@ -466,8 +524,16 @@ function sendenTab() {
   const vi = f.querySelector("[name=von]"), ki = f.querySelector("[name=k]");
   vi.oninput = () => { von = vi.value.trim(); try { localStorage.setItem("bb-von", von); } catch (_) {} };
   ki.oninput = () => { kommentar = ki.value.trim(); };
+  const bereit = () => {
+    if (!von) { alert("Bitte gib deinen Namen an."); return false; }
+    if (!ops.length && !feedbackDaten()) { alert("Es gibt weder Änderungen noch Feedback zum Senden."); return false; }
+    const offen = offeneFragen();
+    if (!fb.uebersprungen && offen)
+      return confirm(`${offen} von 5 Feedbackfragen sind noch offen. Trotzdem senden?`);
+    return true;
+  };
   f.querySelector("[name=dl]").onclick = () => {
-    if (!von) return alert("Bitte gib deinen Namen an.");
+    if (!bereit()) return;
     const blob = new Blob([exportText(ops)], {type: "text/markdown"});
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -475,14 +541,16 @@ function sendenTab() {
     a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   };
   f.querySelector("[name=cp]").onclick = async e => {
-    if (!von) return alert("Bitte gib deinen Namen an.");
+    if (!bereit()) return;
     try { await navigator.clipboard.writeText(exportText(ops)); e.target.textContent = "Kopiert"; }
     catch (_) { alert("Kopieren hat nicht geklappt, nimm bitte den Download."); }
   };
   app.append(f);
-  const r = el(`<div class="tools"><button class="btn">Alle Änderungen verwerfen</button></div>`);
-  r.querySelector("button").onclick = () => { if (confirm("Alle Änderungen verwerfen und zum aktuellen Stand zurück?")) { st = clone(ORIG); neu(); } };
-  app.append(r);
+  if (ops.length) {
+    const r = el(`<div class="tools"><button class="btn">Alle Änderungen verwerfen</button></div>`);
+    r.querySelector("button").onclick = () => { if (confirm("Alle Änderungen verwerfen und zum aktuellen Stand zurück?")) { st = clone(ORIG); neu(); } };
+    app.append(r);
+  }
   return app;
 }
 
