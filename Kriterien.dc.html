@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px 12px;">
+<sc-for list="{{ fields }}" as="f" hint-placeholder-count="6">
+  <div style="grid-column:span {{ f.span }}; display:flex; flex-direction:column; gap:6px; min-width:0;">
+    <div style="display:flex; align-items:center; gap:6px; min-height:22px;">
+      <span style="min-width:0; font-size:12.5px; font-weight:600; line-height:1.25; color:var(--ink);">{{ f.label }}</span>
+      <sc-if value="{{ f.info }}">
+        <button onClick="{{ f.onInfo }}" title="Basti erklärt" aria-label="Erklärung zu {{ f.label }}" style="width:17px; height:17px; flex:none; padding:0; display:inline-flex; align-items:center; justify-content:center; font-family:var(--fm); font-size:10.5px; font-weight:700; color:var(--acc); background:var(--surface); border:1px solid var(--ctl); border-radius:var(--rp); cursor:pointer;">?</button>
+      </sc-if>
+      <sc-if value="{{ f.hasWirkung }}">
+        <span style="font-family:var(--fm); font-size:10.5px; color:var(--muted); padding:0 5px; border:1px solid var(--line-soft); border-radius:var(--r); white-space:nowrap;">{{ f.wirkung }}</span>
+      </sc-if>
+      <span style="flex:1;"></span>
+      <sc-if value="{{ f.changed }}">
+        <button onClick="{{ f.onReset }}" title="Zurücksetzen auf: {{ f.baseText }}" style="display:inline-flex; align-items:center; gap:4px; padding:1px 7px; font-size:11px; font-weight:600; color:var(--chg); background:var(--chg-soft); border:1px solid var(--chg); border-radius:var(--r); cursor:pointer; white-space:nowrap;">geändert ↺</button>
+      </sc-if>
+    </div>
+    <sc-if value="{{ f.isSeg }}">
+      <div style="display:flex; border:var(--bw) solid {{ f.bd }}; border-radius:var(--r); overflow:hidden; background:var(--surface);">
+        <sc-for list="{{ f.options }}" as="o">
+          <button onClick="{{ o.onClick }}" title="{{ o.full }}" style="flex:1 1 0; min-width:0; padding:7px 4px; font-size:12.5px; font-weight:{{ o.fw }}; background:{{ o.bg }}; color:{{ o.fg }}; border:0; border-left:{{ o.sep }}; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ o.label }}</button>
+        </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ f.isSelect }}">
+      <select value="{{ f.selValue }}" onChange="{{ f.onSelect }}" style="width:100%; padding:7px 10px; font-size:13.5px; border:var(--bw) solid {{ f.bd }}; border-radius:var(--r); background:var(--surface); color:var(--ink); cursor:pointer;">
+        <sc-for list="{{ f.options }}" as="o">
+          <option value="{{ o.value }}">{{ o.label }}</option>
+        </sc-for>
+      </select>
+      <sc-if value="{{ f.custom }}">
+        <input value="{{ f.value }}" onChange="{{ f.onText }}" placeholder="Eigene Angabe eintippen" style="width:100%; padding:7px 10px; font-size:13.5px; border:var(--bw) solid {{ f.bd }}; border-radius:var(--r); background:var(--surface); color:var(--ink); outline:none;">
+      </sc-if>
+    </sc-if>
+    <sc-if value="{{ f.isNum }}">
+      <div style="display:flex; align-items:center; border:var(--bw) solid {{ f.bd }}; border-radius:var(--r); background:var(--surface); overflow:hidden;">
+        <input value="{{ f.value }}" onChange="{{ f.onText }}" inputMode="numeric" placeholder="{{ f.ph }}" style="flex:1; min-width:0; border:0; background:transparent; padding:7px 10px; font-family:var(--fm); font-size:14px; color:var(--ink); outline:none;">
+        <span style="padding:0 10px; font-family:var(--fm); font-size:12.5px; color:var(--muted);">{{ f.suffix }}</span>
+      </div>
+    </sc-if>
+    <sc-if value="{{ f.isText }}">
+      <input value="{{ f.value }}" onChange="{{ f.onText }}" placeholder="{{ f.ph }}" style="width:100%; padding:7px 10px; font-size:13.5px; border:var(--bw) solid {{ f.bd }}; border-radius:var(--r); background:var(--surface); color:var(--ink); outline:none;">
+    </sc-if>
+    <sc-if value="{{ f.isSwitch }}">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button onClick="{{ f.sw.onClick }}" aria-label="{{ f.label }}" style="position:relative; width:40px; height:22px; flex:none; padding:0; border:var(--bw) solid {{ f.bd }}; border-radius:var(--rp); background:{{ f.sw.bg }}; cursor:pointer;">
+          <span style="position:absolute; top:2px; left:{{ f.sw.left }}; width:14px; height:14px; background:{{ f.sw.knob }}; border-radius:var(--rp);"></span>
+        </button>
+        <span style="font-size:13px; color:var(--muted);">{{ f.swText }}</span>
+      </div>
+    </sc-if>
+  </div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:480},&quot;fields&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;any[]&quot;}}"></script>
+</body>
+</html>
