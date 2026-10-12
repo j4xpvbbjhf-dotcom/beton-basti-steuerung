@@ -266,6 +266,9 @@ html,body{margin:0;height:100%;background:#e6dcc6;font-family:'IBM Plex Sans',sy
                 <button onClick="{{ L.onMaxInc }}" aria-label="mehr" style="width:26px; height:26px; font-family:var(--fm); font-size:15px; font-weight:600; background:var(--surface); border:var(--bw) solid var(--ctl); border-radius:var(--r); cursor:pointer;">+</button>
                 <span style="font-size:12px; color:var(--muted);">höchstens</span>
               </div>
+              <sc-for list="{{ L.regeln }}" as="rg">
+                <div title="{{ rg.lang }}" style="font-size:11.5px; line-height:1.35; color:var(--muted); text-wrap:pretty;"><b style="color:var(--ink);">{{ rg.gebiet }}</b> {{ rg.kurz }}</div>
+              </sc-for>
             </div>
           </div>
         </div>
@@ -363,6 +366,7 @@ html,body{margin:0;height:100%;background:#e6dcc6;font-family:'IBM Plex Sans',sy
                             <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ it.name }}</span>
                           </button>
                           <sc-if value="{{ it.isNew }}"><span style="padding:0 5px; font-size:10.5px; font-weight:600; color:var(--neu); background:var(--neu-soft); border-radius:var(--r);">neu</span></sc-if>
+                          <sc-if value="{{ it.sonder }}"><span title="{{ it.sonderText }}" style="padding:0 5px; font-size:10.5px; font-weight:600; color:var(--muted); background:var(--surface2); border-radius:var(--r); white-space:nowrap;">{{ it.sonderKurz }}</span></sc-if>
                           <sc-if value="{{ it.showRemove }}"><button onClick="{{ it.onRemove }}" title="Entfernen" style="width:22px; height:22px; flex:none; font-size:14px; line-height:1; color:var(--danger); background:transparent; border:0; cursor:pointer;">×</button></sc-if>
                         </div>
                       </sc-for>
@@ -1205,6 +1209,7 @@ class Component extends DCLogic {
           { label: 'Gebiet', icon: ic.pin, value: E.whole ? 'ganz' : String(E.sel), sub: E.whole ? 'Gebiet' : 'gewählt', hasBar: false, segs: [] },
           { label: 'Fläche', icon: ic.ruler, value: flText(E.krit) || 'egal', sub: E.krit.zimmer === 'egal' ? '' : `${E.krit.zimmer} Zimmer`, hasBar: false, segs: [] }
         ],
+        regeln: (cur.regeln || []).map(r => ({ gebiet: r.gebiet, kurz: `vorerst nur gute Funde, höchstens ${r.max} je Lauf unter ${r.preisQm.toLocaleString('de-DE')} €/m²`, lang: `Aus ${r.gebiet} kommen per Telegram nur Objekte unter ${r.preisQm.toLocaleString('de-DE')} € pro m², höchstens ${r.max} je Lauf, die günstigsten zuerst. Alle anderen Treffer stehen weiter in der Auswertung. Ändern kann das nur Lucas.` })),
         max: E.max, maxChg, maxBd: maxChg ? 'var(--chg)' : 'var(--line-soft)', maxBg: maxChg ? 'var(--chg-soft)' : 'transparent', onMaxReset: () => this.reset(p + 'max'),
         onMaxDec: () => this.setV(p + 'max', Math.max(1, E.max - 1), cur.max, `${pre}Höchstzahl Meldungen je Lauf`), onMaxInc: () => this.setV(p + 'max', Math.min(99, E.max + 1), cur.max, `${pre}Höchstzahl Meldungen je Lauf`),
         krit: KRIT.map(d => this.fld(p + 'k.' + d.k, cur.krit[d.k], d, pre)), kritChg: kritN > 0, kritChgText: kritN === 1 ? '1 Kriterium geändert' : `${kritN} Kriterien geändert`, onKritReset: () => this.resetPrefix(p + 'k.'),
@@ -1221,7 +1226,7 @@ class Component extends DCLogic {
         const its = gr.items.filter(x => !q || x.name.toLowerCase().includes(q)), addKey = `${cur.code}.${lI}.${gI}`, adding = s.adding === addKey;
         return { titel: gr.titel, count: `${gr.items.filter(x => x.an).length} von ${gr.items.length}`, show: !q || its.length > 0,
           onAllOn: () => this.setGroup(cur, E, lI, gr, true), onAllOff: () => this.setGroup(cur, E, lI, gr, false),
-          items: its.map(x => { const ch = this.isChg(`${p}i.${lI}.${x.name}`) || !x.orig; return { name: x.name, an: x.an, onClick: () => this.toggleItem(cur, E, lI, x), boxBg: x.an ? 'var(--acc)' : 'var(--surface)', rowBg: ch ? 'var(--chg-soft)' : 'transparent', fw: x.an ? 600 : 400, isNew: !x.orig, showRemove: s.editList, onRemove: () => this.removeItem(cur, E, lI, gI, x) }; }),
+          items: its.map(x => { const ch = this.isChg(`${p}i.${lI}.${x.name}`) || !x.orig; const rg = (cur.regeln || []).find(r => r.gebiet.toLowerCase() === x.name.toLowerCase()); return { sonder: !!rg, sonderKurz: rg ? `Top ${rg.max}` : '', sonderText: rg ? `Per Telegram nur Objekte unter ${rg.preisQm.toLocaleString('de-DE')} € pro m², höchstens ${rg.max} je Lauf` : '', name: x.name, an: x.an, onClick: () => this.toggleItem(cur, E, lI, x), boxBg: x.an ? 'var(--acc)' : 'var(--surface)', rowBg: ch ? 'var(--chg-soft)' : 'transparent', fw: x.an ? 600 : 400, isNew: !x.orig, showRemove: s.editList, onRemove: () => this.removeItem(cur, E, lI, gI, x) }; }),
           adding, notAdding: !adding, onAddStart: () => this.setState({ adding: addKey, addText: '' }), addText: s.addText, onAddText: e => this.setState({ addText: e.target.value }),
           onAddKey: e => { if (e.key === 'Enter') this.addItem(cur, E, lI, gI); if (e.key === 'Escape') this.setState({ adding: null }); }, onAddOk: () => this.addItem(cur, E, lI, gI), onAddCancel: () => this.setState({ adding: null }), addPh: /PLZ/.test(li.titel) ? 'z. B. 6063 Rum' : 'Name eintippen' };
       }) : [];
